@@ -43,162 +43,162 @@ public:
     d_filt = alpha_d * raw_d + (1.0f - alpha_d) * d_filt;
 
     float turn = kp * e_filt + kd * d_filt;
+    turn = clamp<float>(turn, -55.0f, 55.0f);
 
-    float turn_amount = abs(e_filt) + 4.0f * abs(d_filt);
-    float base = max_base - 0.7f * turn_amount;
+    float turn_amount = fabs(e_filt) + 4.0f * fabs(d_filt);
+    float base = max_base - 0.35f * turn_amount;
     base = clamp<float>(base, min_base, max_base);
 
     return {
-        clamp<int>(base - turn, 0, 255),
-        clamp<int>(base + turn, 0, 255)};
-  }
+        clamp<int>(int(base - turn), 0, 255),
+        clamp<int>(int(base + turn), 0, 255)};
 
-private:
-  // Tuning
-  // How much do we change steering in response to error?
-  float kp = 2.0f; // Proportional
-  float kd = 8.0f; // Derivative
+  private:
+    // Tuning
+    // How much do we change steering in response to error?
+    float kp = 1.5f;  // Proportional
+    float kd = 12.0f; // Derivative
 
-  // How much do we carry over past error vs new error?
-  // Higher alpha is more responsive, lower alpha is more smooth
-  // Effective memory length is roughly 1/alpha
-  float alpha_e = 0.35f; // Proportional
-  float alpha_d = 0.25f; // Derivative
+    // How much do we carry over past error vs new error?
+    // Higher alpha is more responsive, lower alpha is more smooth
+    // Effective memory length is roughly 1/alpha
+    float alpha_e = 0.25f; // Proportional
+    float alpha_d = 0.35f; // Derivative
 
-  // Clamp final speed, 0-100.
-  int max_base = 90; // Max speed (e.g., on straights)
-  int min_base = 55; // Min speed (prevent stalling)
+    // Clamp final speed, 0-100.
+    int max_base = 110; // Max speed (e.g., on straights)
+    int min_base = 65;  // Min speed (prevent stalling)
 
-  // State
-  float e_filt = 0;      // Filterer error (weighted sum of current and past error)
-  float prev_e_filt = 0; // Last step's filtered error to to calculate
-  float d_filt = 0;
-};
+    // State
+    float e_filt = 0;      // Filterer (weighted sum of current and past error)
+    float prev_e_filt = 0; // Last step's filtered error to to calculate
+    float d_filt = 0;
+  };
 
-// Multi-sensor data fusion
-class Sensors
-{
-public:
-  static constexpr int N = 8; // number of sensors
-
-  uint16_t *values()
+  // Multi-sensor data fusion
+  class Sensors
   {
-    return raw;
-  }
+  public:
+    static constexpr int N = 8; // number of sensors
 
-  float error()
-  {
-    float sum = 0;
-    float weighted = 0;
-
-    for (int i = 0; i < N; ++i)
+    uint16_t *values()
     {
-      float v = normalize(i, raw[i]);
-
-      v = v * v; // Sharpen peaks
-      // v = v * v * v; // Even sharper
-
-      sum += v;
-      weighted += pos[i] * v;
+      return raw;
     }
 
-    if (sum < lost_threshold)
+    float error()
     {
-      // Use last line if no line is detected
+      float sum = 0;
+      float weighted = 0;
+
+      for (int i = 0; i < N; ++i)
+      {
+        float v = normalize(i, raw[i]);
+
+        v = v * v; // Sharpen peaks
+        // v = v * v * v; // Even sharper
+
+        sum += v;
+        weighted += pos[i] * v;
+      }
+
+      if (sum < lost_threshold)
+      {
+        // Use last line if no line is detected
+        return last_error;
+      }
+
+      last_error = weighted / sum;
       return last_error;
     }
 
-    last_error = weighted / sum;
-    return last_error;
-  }
+  private:
+    uint16_t raw[N];
 
-private:
-  uint16_t raw[N];
+    // Computed from spreadsheet
+    const uint16_t min_vals[N] = {669, 734, 618, 757, 614, 711, 734, 805};
+    const uint16_t max_vals[N] = {1652, 1635, 1039, 1565, 853, 1515, 1754, 1695};
 
-  // Computed from spreadsheet
-  const uint16_t min_vals[N] = {669, 734, 618, 757, 614, 711, 734, 805};
-  const uint16_t max_vals[N] = {1652, 1635, 1039, 1565, 853, 1515, 1754, 1695};
+    float last_error = 0;
 
-  float last_error = 0;
+    float normalize(int i, uint16_t x)
+    {
+      float n = float(x - min_vals[i]) / float(max_vals[i] - min_vals[i]);
 
-  float normalize(int i, uint16_t x)
+      // Clamp away values outside of previously measure min and max
+      n = clamp(n, 0.0f, 1.0f);
+
+      // Deadband with small epsilon like the sheet formula
+      const float eps = 0.05f;
+      n = n * (1.0f + eps) - eps;
+
+      // Clamp away values in the bottom epsilon to 0
+      n = clamp(n, 0.0f, 1.0f);
+
+      return n;
+    }
+
+    // Positions of sensors
+    // Calculated via weighted average from spreadsheet
+    // right -> left, same order as sensors 0 -> 7
+    const float pos[8] = {
+        -33.893f,
+        -24.29f,
+        -14.351f,
+        -5.069f,
+        5.307f,
+        13.907f,
+        23.785f,
+        33.369f};
+
+    // If sensor readings sum to less than this, no line is detected
+    const float lost_threshold = 0.02f;
+    const float trust_threshold = 0.25f;
+  };
+
+  // Create global objects
+  Sensors sensors;
+  Controller controller;
+
+  void setup()
   {
-    float n = float(x - min_vals[i]) / float(max_vals[i] - min_vals[i]);
+    pinMode(left_nslp_pin, OUTPUT);
+    pinMode(left_dir_pin, OUTPUT);
+    pinMode(left_pwm_pin, OUTPUT);
 
-    // Clamp away values outside of previously measure min and max
-    clamp(n, 0.0f, 1.0f);
+    pinMode(right_nslp_pin, OUTPUT);
+    pinMode(right_dir_pin, OUTPUT);
+    pinMode(right_pwm_pin, OUTPUT);
 
-    // Deadband with small epsilon like the sheet formula
-    const float eps = 0.05f;
-    n = n * (1.0f + eps) - eps;
+    digitalWrite(left_dir_pin, LOW);
+    digitalWrite(left_nslp_pin, HIGH);
 
-    // Clamp away values in the bottom epsilon to 0
-    clamp(n, 0.0f, 1.0f);
+    digitalWrite(right_dir_pin, LOW);
+    digitalWrite(right_nslp_pin, HIGH);
 
-    return n;
+    pinMode(led_rf_pin, OUTPUT);
+
+    ECE3_Init();
+    Serial.begin(9600);
+
+    int wait_ms = 2000;
+    int blinks = 10;
+    for (int i = 0; i < blinks; ++i)
+    {
+      delay(wait_ms / blinks / 2);
+      digitalWrite(led_rf_pin, HIGH);
+      delay(wait_ms / blinks / 2);
+      digitalWrite(led_rf_pin, LOW);
+    }
   }
 
-  // Positions of sensors
-  // Calculated via weighted average from spreadsheet
-  // right -> left, same order as sensors 0 -> 7
-  const float pos[8] = {
-      -33.893f,
-      -24.29f,
-      -14.351f,
-      -5.069f,
-      5.307f,
-      13.907f,
-      23.785f,
-      33.369f};
-
-  // If sensor readings sum to less than this, no line is detected
-  const lost_threshold = 0.02f;
-  const trust_threshold = 0.25f;
-};
-
-// Create global objects
-Sensors sensors;
-Controller controller;
-
-void setup()
-{
-  pinMode(left_nslp_pin, OUTPUT);
-  pinMode(left_dir_pin, OUTPUT);
-  pinMode(left_pwm_pin, OUTPUT);
-
-  pinMode(right_nslp_pin, OUTPUT);
-  pinMode(right_dir_pin, OUTPUT);
-  pinMode(right_pwm_pin, OUTPUT);
-
-  digitalWrite(left_dir_pin, LOW);
-  digitalWrite(left_nslp_pin, HIGH);
-
-  digitalWrite(right_dir_pin, LOW);
-  digitalWrite(right_nslp_pin, HIGH);
-
-  pinMode(led_rf_pin, OUTPUT);
-
-  ECE3_Init();
-  Serial.begin(9600);
-
-  int wait_ms = 2000;
-  int blinks = 10;
-  for (int i = 0; i < blinks; ++i)
+  void loop()
   {
-    delay(wait_ms / blinks / 2);
-    digitalWrite(led_rf_pin, HIGH);
-    delay(wait_ms / blinks / 2);
-    digitalWrite(led_rf_pin, LOW);
+    ECE3_read_IR(sensors.values());
+
+    float error = sensors.error();
+    MotorCommand command = controller.update(error);
+
+    analogWrite(left_pwm_pin, command.left);
+    analogWrite(right_pwm_pin, command.right);
   }
-}
-
-void loop()
-{
-  ECE3_read_IR(sensors.values());
-
-  float error = sensors.error();
-  MotorCommand command = controller.update(error);
-
-  analogWrite(left_pwm_pin, command.left);
-  analogWrite(right_pwm_pin, command.right);
-}
