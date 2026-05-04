@@ -1,13 +1,3 @@
-// Base code.
-//
-// *  NOTE: this code will do only three things:
-// *    --rotate one wheel, and
-// *    --blink the right front mainboard LED.
-// *
-// *  You will need to add more code to
-// *  make the car do anything useful.
-//
-
 #include <ECE3_LCD7.h>
 
 const int left_nslp_pin = 31; // nslp ==> awake & ready for PWM
