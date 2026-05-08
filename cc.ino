@@ -17,12 +17,20 @@ const int led=41;
 float get_error(uint16_t sv[]) {
 
   for(int i = 0; i<8; i++) {
-    Serial.print(sv[i]); Serial.print(" ");
     sv[i] = (sv[i] - mins[i]) * (1000.0 / maxs[i]);
-  }
-  Serial.println();
+    Serial.print(sv[i]);
+    Serial.print(" ");
 
-  uint16_t comb = (sv[4]-sv[3] + 2*(sv[5]-sv[2]) + 4*(sv[6]-sv[1]) + 8*(sv[7]-sv[0]))/4;
+  }
+  Serial.println(" ");
+
+  // int + int -> int
+  // int + float -> (float)int + float -> float
+  // float + int
+  // 0.0 is a float
+  // 0
+
+  float comb = ((float)sv[4]-sv[3] + 2*((float)sv[5]-sv[2]) + 4*((float)sv[6]-sv[1]) + 8*((float)sv[7]-sv[0]))/4;
   Serial.println(comb);
   
   return (comb - 24.56) / 48.69;
@@ -59,7 +67,7 @@ void loop() {
   ECE3_read_IR(sensorValues);
   Serial.println(get_error(sensorValues));
 
-  delay(500);
+  delay(1000);
 
   //int leftSpd = 70;
   //analogWrite(left_pwm_pin,leftSpd);
