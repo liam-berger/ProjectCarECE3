@@ -1,3 +1,5 @@
+// V1.0 Architecture
+
 #include <ECE3.h>
 
 // Helpers
@@ -87,6 +89,42 @@ private:
 class Controller
 {
 public:
+  MotorCommand update_old(float raw_error)
+  {
+    float dt = static_cast<float>(millis() - last_ms) / 1000.0;
+    dt = clamp<float>(dt, 0.001, 0.1);
+    last_ms = millis();
+
+    // Filtered error as linear combination of current and past error
+    e_filt = alpha_e * raw_error + (1.0f - alpha_e) * e_filt;
+
+    float raw_d = (e_filt - prev_e_filt) / dt;
+    prev_e_filt = e_filt;
+
+    d_filt = alpha_d * raw_d + (1.0f - alpha_d) * d_filt;
+
+    float turn = (kp * e_filt + kd * d_filt) * base_speed * turn_mult * 2;
+    turn = clamp<float>(turn, -base_speed * max_turn, base_speed * max_turn);
+
+    if (Timers::get().ready(0))
+    {
+      Serial.print("Position: ");
+      Serial.println(kp * e_filt * base_speed * turn_mult);
+      Serial.print("Derivative: ");
+      Serial.println(kd * d_filt * base_speed * turn_mult);
+      Timers::get().reset(0);
+    }
+
+    return {
+        clamp<int>(int(base_speed - turn), -255, 255),
+        clamp<int>(int(base_speed + turn), -255, 255),
+        clamp<int>(abs(int(base_speed - turn)), 0, 255),
+        clamp<int>(abs(int(base_speed + turn)), 0, 255),
+        direction(base_speed - turn),
+        direction(base_speed + turn),
+    };
+  }
+
   MotorCommand update(float raw_error)
   {
     float dt = static_cast<float>(millis() - last_ms) / 1000.0;
@@ -127,7 +165,7 @@ private:
   // Tuning
   // How much do we change steering in response to error?
   float kp = 1.5f;  // Proportional
-  float kd = 0.03f; // Derivative
+  float kd = 0.14f; // Derivative
 
   // How much do we carry over past error vs new error?
   // Higher alpha is more responsive, lower alpha is more smooth
@@ -136,9 +174,9 @@ private:
   float alpha_d = 0.35f; // Derivative
 
   // Speeds
-  int base_speed = 30;    // 0 to 255
+  int base_speed = 150;   // 0 to 255
   float turn_mult = 0.02; // Scales turn
-  float max_turn = 2.0;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
+  float max_turn = 1.5;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
 
   // State
   float e_filt = 0;      // Filterer (weighted sum of current and past error)
@@ -197,6 +235,29 @@ public:
     return last_error;
   }
 
+  bool solid()
+  {
+    float sum = 0;
+
+    for (int i = 0; i < N; ++i)
+    {
+      sum += normalize(raw[i]);
+    }
+
+    if (Timers::get().ready(3))
+    {
+      Serial.println(sum);
+      Timers::get().reset(3);
+    }
+
+    if (sum > solid_threshold)
+    {
+      return true;
+    }
+
+    return false;
+  }
+
 private:
   uint16_t raw[N];
 
@@ -206,9 +267,9 @@ private:
 
   float last_error = 0;
 
-  float normalize(int i, uint16_t x)
+  float normalize(int sensor, uint16_t value)
   {
-    float n = (float(x) - float(min_vals[i])) / (float(max_vals[i]) - float(min_vals[i]));
+    float n = (float(value) - float(min_vals[sensor])) / (float(max_vals[sensor]) - float(min_vals[sensor]));
 
     // Clamp away values outside of previously measure min and max
     n = clamp(n, 0.0f, 1.0f);
@@ -239,6 +300,7 @@ private:
   // If sensor readings sum to less than this, no line is detected
   const float lost_threshold = 0.02f;
   const float trust_threshold = 0.25f;
+  const float solid_threshold = 3.0f;
 };
 
 // Create global objects
@@ -266,7 +328,11 @@ void setup()
   ECE3_Init();
   Serial.begin(9600);
 
-  int wait_ms = 2000;
+  Timers::get().set_durations(1.0);
+  Timers::get().set_duration(2, 0.2);
+  Timers::get().set_duration(3, 0.1);
+
+  int wait_ms = 1000;
   int blinks = 10;
   for (int i = 0; i < blinks; ++i)
   {
@@ -275,9 +341,6 @@ void setup()
     delay(wait_ms / blinks / 2);
     digitalWrite(Pins::led_rf_pin, LOW);
   }
-
-  Timers::get().set_durations(1.0);
-  Timers::get().set_duration(2, 0.2);
 }
 
 void loop()
