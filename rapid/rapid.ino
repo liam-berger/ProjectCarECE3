@@ -1,4 +1,4 @@
-// V1.0 Architecture
+// V1.1 Architecture
 
 #include <ECE3.h>
 
@@ -39,15 +39,24 @@ constexpr int direction(T x)
   return x > 0 ? LOW : HIGH;
 }
 
+constexpr int flip(int direction)
+{
+  if (direction == HIGH)
+    return LOW;
+  return HIGH;
+}
+
 struct MotorCommand
 {
   int left;
   int right;
   int left_mag;
   int right_mag;
-  int left_dir;
-  int right_dir;
+  short left_dir;
+  short right_dir;
 };
+
+const MotorCommand stop_command{0, 0, 0, 0, 0, 0};
 
 // 8 timers
 class Timers
@@ -61,6 +70,7 @@ public:
 
   bool ready(short channel)
   {
+    // if (enabled[channel]) return false;
     return millis() - last_ms[channel] > durations[channel] * 1000;
   }
 
@@ -85,14 +95,82 @@ private:
   float durations[8] = {0.0};
 };
 
+class Car {
+public:
+  void drive(MotorCommand command)
+  {
+    if (direction == 0)
+    {
+      analogWrite(Pins::left_pwm_pin, 0);
+      analogWrite(Pins::right_pwm_pin, 0);
+      return;
+    }
+
+    if (direction == -1)
+    {
+      command.left_dir = flip(command.left_dir);
+      command.right_dir = flip(command.right_dir);
+    }
+
+    digitalWrite(Pins::left_dir_pin, command.left_dir);
+    digitalWrite(Pins::right_dir_pin, command.right_dir);
+
+    // Speeds
+    analogWrite(Pins::left_pwm_pin, command.left_mag);
+    analogWrite(Pins::right_pwm_pin, command.right_mag);
+  }
+
+  void donut()
+  {
+    const int temp_dir = direction;
+    direction = 1;
+
+    MotorCommand donut_command{donut_speed, -donut_speed, donut_speed, donut_speed, 1, 0};
+    drive(donut_command);
+    delay((uint32_t)(donut_duration * 1000));
+
+    direction = temp_dir;
+  }
+
+  bool respond_solid(bool solid)
+  {
+    if (!solid || millis() - last_solid < solid_timeout * 1000)
+      return false;
+    
+    ++solid_count;
+
+    // Reverse
+    if (solid_count == 1)
+    {
+      donut();
+      return true;
+    }
+
+    drive(stop_command);
+    while (true) {} // Wait indefinitely
+    return true;
+  }
+
+public:
+  // Constants
+  const float solid_timeout = 2.0f; // Seconds after solid to go blind to new solids
+  const float donut_duration = 0.5f; // Seconds of donut
+  const float donut_speed = 170; // Speed of donut
+
+  // State
+  short direction = 1; // 1 forward, 0 stop, -1 backward
+  int solid_count = 0; // 0 is start, 1 is reverse, 2 is stop
+  unsigned long last_solid = 0; // Time in ms of last solid
+};
+
 // Implement PD feedback control
 class Controller
 {
 public:
   MotorCommand update_old(float raw_error)
   {
-    float dt = static_cast<float>(millis() - last_ms) / 1000.0;
-    dt = clamp<float>(dt, 0.001, 0.1);
+    float dt = static_cast<float>(millis() - last_ms) / 1000.0f;
+    dt = clamp<float>(dt, 0.001f, 0.1f);
     last_ms = millis();
 
     // Filtered error as linear combination of current and past error
@@ -161,11 +239,18 @@ public:
     };
   }
 
+  void reset()
+  {
+    e_filt = 0;
+    d_filt = 0;
+    last_ms = 0;
+  }
+
 private:
   // Tuning
   // How much do we change steering in response to error?
-  float kp = 1.5f;  // Proportional
-  float kd = 0.14f; // Derivative
+  float kp = 0.7f;  // Proportional
+  float kd = 0.08f; // Derivative
 
   // How much do we carry over past error vs new error?
   // Higher alpha is more responsive, lower alpha is more smooth
@@ -174,14 +259,14 @@ private:
   float alpha_d = 0.35f; // Derivative
 
   // Speeds
-  int base_speed = 150;   // 0 to 255
-  float turn_mult = 0.02; // Scales turn
-  float max_turn = 1.5;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
+  int base_speed = 170;   // 0 to 255
+  float turn_mult = 0.015f; // Scales turn
+  float max_turn = 1.5f;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
 
   // State
-  float e_filt = 0;      // Filterer (weighted sum of current and past error)
-  float prev_e_filt = 0; // Last step's filtered error to to calculate
-  float d_filt = 0;
+  float e_filt = 0.0f;      // Filtered (weighted sum of current and past error)
+  float prev_e_filt = 0.0f; // Last step's filtered error to to calculate
+  float d_filt = 0.0f;
   unsigned long last_ms = 0;
 };
 
@@ -198,8 +283,8 @@ public:
 
   float error()
   {
-    float sum = 0;
-    float weighted = 0;
+    float sum = 0.0f;
+    float weighted = 0.0f;
 
     for (int i = 0; i < N; ++i)
     {
@@ -241,16 +326,12 @@ public:
 
     for (int i = 0; i < N; ++i)
     {
-      sum += normalize(raw[i]);
+      sum += normalize(i, raw[i]);
     }
 
-    if (Timers::get().ready(3))
-    {
-      Serial.println(sum);
-      Timers::get().reset(3);
-    }
+    s_filt = sum * alpha_s + s_filt * (1.0f - alpha_s);
 
-    if (sum > solid_threshold)
+    if (s_filt > solid_threshold)
     {
       return true;
     }
@@ -266,6 +347,8 @@ private:
   const uint16_t max_vals[N] = {1652, 1635, 1039, 1565, 853, 1515, 1754, 1695};
 
   float last_error = 0;
+  float s_filt = 0.0;
+  float alpha_s = 0.3;
 
   float normalize(int sensor, uint16_t value)
   {
@@ -300,12 +383,13 @@ private:
   // If sensor readings sum to less than this, no line is detected
   const float lost_threshold = 0.02f;
   const float trust_threshold = 0.25f;
-  const float solid_threshold = 3.0f;
+  const float solid_threshold = 5.0f;
 };
 
 // Create global objects
 Sensors sensors;
 Controller controller;
+Car car;
 
 void setup()
 {
@@ -346,15 +430,18 @@ void setup()
 void loop()
 {
   ECE3_read_IR(sensors.values());
-
   float error = sensors.error();
+  bool solid = sensors.solid();
+  bool reset = car.respond_solid(solid);
+  if (reset)
+    controller.reset();
   MotorCommand command = controller.update(error);
+  car.drive(command);
 
-  digitalWrite(Pins::left_dir_pin, command.left_dir);
-  digitalWrite(Pins::right_dir_pin, command.right_dir);
-
-  analogWrite(Pins::left_pwm_pin, command.left_mag);
-  analogWrite(Pins::right_pwm_pin, command.right_mag);
+  Serial.println(car.direction);
+  Serial.println(solid);
+  Serial.println();
+  delay(10);
 
   if (Timers::get().ready(1))
   {
