@@ -1,4 +1,4 @@
-#include <ECE3_LCD7.h>
+#include <ECE3.h>
 
 const int left_nslp_pin = 31; // nslp ==> awake & ready for PWM
 const int left_dir_pin = 29;
@@ -52,6 +52,7 @@ public:
     return {
         clamp<int>(int(base - turn), 0, 255),
         clamp<int>(int(base + turn), 0, 255)};
+  }
 
   private:
     // Tuning
