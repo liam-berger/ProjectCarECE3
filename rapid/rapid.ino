@@ -1,4 +1,4 @@
-// V1.1 Architecture
+// V1.2 Architecture
 
 #include <ECE3.h>
 
@@ -70,7 +70,7 @@ public:
 
   bool ready(short channel)
   {
-    // if (enabled[channel]) return false;
+    if (enabled[channel]) return false;
     return millis() - last_ms[channel] > durations[channel] * 1000;
   }
 
@@ -84,15 +84,32 @@ public:
     durations[channel] = seconds;
   }
 
+  // Set all durations
   void set_durations(float seconds)
   {
     for (int i = 0; i < 8; ++i)
       set_duration(i, seconds);
   }
 
+  // Enable/disable all
+  void set_enabled(bool value)
+  {
+    for (int i = 0; i < 8; ++i)
+    {
+      enabled[i] = value;
+    }
+  }
+
+  // Enable/disable channels
+  void set_enabled(short channel, bool value)
+  {
+    enabled[channel] = value;
+  }
+
 private:
   unsigned long last_ms[8] = {0};
-  float durations[8] = {0.0};
+  float durations[8] = {0.0f};
+  bool enabled[8] = {true};
 };
 
 class Car {
@@ -137,15 +154,18 @@ public:
     if (!solid || millis() - last_solid < solid_timeout * 1000)
       return false;
     
+    // Update state
+    last_solid = millis();
     ++solid_count;
 
-    // Reverse
+    // Reverse via donut (blocking)
     if (solid_count == 1)
     {
       donut();
       return true;
     }
 
+    // Otherwise, stop forever
     drive(stop_command);
     while (true) {} // Wait indefinitely
     return true;
@@ -153,9 +173,9 @@ public:
 
 public:
   // Constants
-  const float solid_timeout = 2.0f; // Seconds after solid to go blind to new solids
-  const float donut_duration = 0.5f; // Seconds of donut
-  const float donut_speed = 170; // Speed of donut
+  const float solid_timeout = 1.0f; // Seconds after solid to go blind to new solids
+  const float donut_duration = 0.42f; // Seconds of donut
+  const float donut_speed = 140; // Speed of donut
 
   // State
   short direction = 1; // 1 forward, 0 stop, -1 backward
@@ -250,7 +270,7 @@ private:
   // Tuning
   // How much do we change steering in response to error?
   float kp = 0.7f;  // Proportional
-  float kd = 0.08f; // Derivative
+  float kd = 0.14f; // Derivative
 
   // How much do we carry over past error vs new error?
   // Higher alpha is more responsive, lower alpha is more smooth
@@ -259,8 +279,8 @@ private:
   float alpha_d = 0.35f; // Derivative
 
   // Speeds
-  int base_speed = 170;   // 0 to 255
-  float turn_mult = 0.015f; // Scales turn
+  int base_speed = 255;   // 0 to 255
+  float turn_mult = 0.013f; // Scales turn
   float max_turn = 1.5f;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
 
   // State
@@ -329,15 +349,16 @@ public:
       sum += normalize(i, raw[i]);
     }
 
-    s_filt = sum * alpha_s + s_filt * (1.0f - alpha_s);
-
-    if (s_filt > solid_threshold)
+    if (last_sum >= solid_threshold && sum >= solid_threshold)
     {
+      last_sum = 0.0f; // Forget crossbar if solid (reduce chance of immediate double response to crossbar)
       return true;
     }
 
+    // Store last sum normally (prevent phantom crossbars)
+    last_sum = sum;
     return false;
-  }
+  } 
 
 private:
   uint16_t raw[N];
@@ -347,8 +368,7 @@ private:
   const uint16_t max_vals[N] = {1652, 1635, 1039, 1565, 853, 1515, 1754, 1695};
 
   float last_error = 0;
-  float s_filt = 0.0;
-  float alpha_s = 0.3;
+  float last_sum = 0;
 
   float normalize(int sensor, uint16_t value)
   {
@@ -383,7 +403,7 @@ private:
   // If sensor readings sum to less than this, no line is detected
   const float lost_threshold = 0.02f;
   const float trust_threshold = 0.25f;
-  const float solid_threshold = 5.0f;
+  const float solid_threshold = 7.0f;
 };
 
 // Create global objects
@@ -415,6 +435,7 @@ void setup()
   Timers::get().set_durations(1.0);
   Timers::get().set_duration(2, 0.2);
   Timers::get().set_duration(3, 0.1);
+  Timers::get().set_enabled(false); // Disable timers
 
   int wait_ms = 1000;
   int blinks = 10;
@@ -430,18 +451,16 @@ void setup()
 void loop()
 {
   ECE3_read_IR(sensors.values());
+
   float error = sensors.error();
   bool solid = sensors.solid();
   bool reset = car.respond_solid(solid);
+
   if (reset)
     controller.reset();
   MotorCommand command = controller.update(error);
+  
   car.drive(command);
-
-  Serial.println(car.direction);
-  Serial.println(solid);
-  Serial.println();
-  delay(10);
 
   if (Timers::get().ready(1))
   {
