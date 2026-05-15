@@ -1,7 +1,7 @@
 // V1.4 Architecture
 
 #include <ECE3.h>
-#include "constants.h"
+#include "pins.h"
 #include "helper.h"
 #include "command.h"
 #include "timers.h"
@@ -13,6 +13,7 @@
 Sensors sensors;
 Controller controller;
 Car car;
+int track_type = 0; // 0 unset, 1 big, 2 small
 
 void setup()
 {
@@ -39,6 +40,14 @@ void setup()
   // Timers::get().set_duration(2, 0.2);
   // Timers::get().set_duration(3, 0.1);
   // Timers::get().set_enabled(false); // Disable timers
+
+  while (track_type == 0)
+  {
+    if (digitalRead(Pins::s1))
+      track_type = 1;
+    else if (digitalRead(Pins::s2))
+      track_type = 2;
+  }
 
   int wait_ms = 1000;
   int blinks = 10;
