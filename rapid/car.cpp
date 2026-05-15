@@ -8,8 +8,8 @@ void Car::drive(MotorCommand command)
 {
     if (direction == 0)
     {
-        analogWrite(Pins::left_pwm_pin, 0);
-        analogWrite(Pins::right_pwm_pin, 0);
+        analogWrite(Pins::left_pwm, 0);
+        analogWrite(Pins::right_pwm, 0);
         return;
     }
 
@@ -19,12 +19,12 @@ void Car::drive(MotorCommand command)
         command.right_dir = flip(command.right_dir);
     }
 
-    digitalWrite(Pins::left_dir_pin, command.left_dir);
-    digitalWrite(Pins::right_dir_pin, command.right_dir);
+    digitalWrite(Pins::left_dir, command.left_dir);
+    digitalWrite(Pins::right_dir, command.right_dir);
 
     // Speeds
-    analogWrite(Pins::left_pwm_pin, command.left_mag);
-    analogWrite(Pins::right_pwm_pin, command.right_mag);
+    analogWrite(Pins::left_pwm, command.left_mag);
+    analogWrite(Pins::right_pwm, command.right_mag);
 }
 
 void Car::donut()

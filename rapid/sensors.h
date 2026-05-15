@@ -24,6 +24,7 @@ private:
     float last_sum = 0;
 
     float normalize(int sensor, uint16_t value);
+
     // Positions of sensors
     // Calculated via weighted average from spreadsheet
     // right -> left, same order as sensors 0 -> 7

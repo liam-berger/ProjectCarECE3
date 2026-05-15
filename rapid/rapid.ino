@@ -17,21 +17,23 @@ int track_type = 0; // 0 unset, 1 big, 2 small
 
 void setup()
 {
-  pinMode(Pins::left_nslp_pin, OUTPUT);
-  pinMode(Pins::left_dir_pin, OUTPUT);
-  pinMode(Pins::left_pwm_pin, OUTPUT);
+  pinMode(Pins::left_nslp, OUTPUT);
+  pinMode(Pins::left_dir, OUTPUT);
+  pinMode(Pins::left_pwm, OUTPUT);
 
-  pinMode(Pins::right_nslp_pin, OUTPUT);
-  pinMode(Pins::right_dir_pin, OUTPUT);
-  pinMode(Pins::right_pwm_pin, OUTPUT);
+  pinMode(Pins::right_nslp, OUTPUT);
+  pinMode(Pins::right_dir, OUTPUT);
+  pinMode(Pins::right_pwm, OUTPUT);
 
-  digitalWrite(Pins::left_dir_pin, LOW);
-  digitalWrite(Pins::left_nslp_pin, HIGH);
+  digitalWrite(Pins::left_dir, LOW);
+  digitalWrite(Pins::left_nslp, HIGH);
 
-  digitalWrite(Pins::right_dir_pin, LOW);
-  digitalWrite(Pins::right_nslp_pin, HIGH);
+  digitalWrite(Pins::right_dir, LOW);
+  digitalWrite(Pins::right_nslp, HIGH);
 
-  pinMode(Pins::led_rf_pin, OUTPUT);
+  pinMode(Pins::led_rf, OUTPUT);
+  pinMode(Pins::s1, INPUT_PULLUP);
+  pinMode(Pins::s2, INPUT_PULLUP);
 
   ECE3_Init();
   Serial.begin(9600);
@@ -43,20 +45,24 @@ void setup()
 
   while (track_type == 0)
   {
-    if (digitalRead(Pins::s1))
+    if (!digitalRead(Pins::s1))
       track_type = 1;
-    else if (digitalRead(Pins::s2))
+    else if (!digitalRead(Pins::s2))
       track_type = 2;
   }
+
+  digitalWrite(Pins::led_blue, track_type == 1);
+  digitalWrite(Pins::led_green, track_type == 2);
+  digitalWrite(Pins::led_red, LOW);
 
   int wait_ms = 1000;
   int blinks = 10;
   for (int i = 0; i < blinks; ++i)
   {
     delay(wait_ms / blinks / 2);
-    digitalWrite(Pins::led_rf_pin, HIGH);
+    digitalWrite(Pins::led_rf, HIGH);
     delay(wait_ms / blinks / 2);
-    digitalWrite(Pins::led_rf_pin, LOW);
+    digitalWrite(Pins::led_rf, LOW);
   }
 }
 
