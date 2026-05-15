@@ -1,4 +1,4 @@
-// V1.2 Architecture
+// V1.3 Architecture
 
 #include <ECE3.h>
 
@@ -15,6 +15,37 @@ struct Pins
   static constexpr int right_pwm_pin = 39;
 
   static constexpr int led_rf_pin = 41;
+};
+
+struct Tuning
+{
+  // Controller tuning
+  // How much do we change steering in response to error?
+  static constexpr float kp = 0.7f;  // Proportional
+  static constexpr float kd = 0.14f; // Derivative
+
+  // How much do we carry over past error vs new error?
+  // Higher alpha is more responsive, lower alpha is more smooth
+  // Effective memory length is roughly 1/alpha
+  static constexpr float alpha_e = 0.25f; // Proportional
+  static constexpr float alpha_d = 0.35f; // Derivative
+
+  // Speeds
+  static constexpr int base_speed = 255;   // 0 to 255
+  static constexpr float turn_mult = 0.013f; // Scales turn
+  static constexpr float max_turn = 1.5f;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
+
+
+  // Car tuning
+  static constexpr float solid_timeout = 1.0f; // Seconds after solid to go blind to new solids
+  static constexpr float donut_duration = 0.42f; // Seconds of donut
+  static constexpr float donut_speed = 140; // Speed of donut
+
+
+  // Sensor tuning
+  static constexpr float lost_threshold = 0.02f; // If sensor readings sum to less than this, no line is detected
+  static constexpr float trust_threshold = 0.25f;
+  static constexpr float solid_threshold = 7.0f;
 };
 
 template <typename T>
@@ -142,16 +173,16 @@ public:
     const int temp_dir = direction;
     direction = 1;
 
-    MotorCommand donut_command{donut_speed, -donut_speed, donut_speed, donut_speed, 1, 0};
+    MotorCommand donut_command{Tuning::donut_speed, -Tuning::donut_speed, Tuning::donut_speed, Tuning::donut_speed, 1, 0};
     drive(donut_command);
-    delay((uint32_t)(donut_duration * 1000));
+    delay((uint32_t)(Tuning::donut_duration * 1000));
 
     direction = temp_dir;
   }
 
   bool respond_solid(bool solid)
   {
-    if (!solid || millis() - last_solid < solid_timeout * 1000)
+    if (!solid || millis() - last_solid < Tuning::solid_timeout * 1000)
       return false;
     
     // Update state
@@ -171,12 +202,7 @@ public:
     return true;
   }
 
-public:
-  // Constants
-  const float solid_timeout = 1.0f; // Seconds after solid to go blind to new solids
-  const float donut_duration = 0.42f; // Seconds of donut
-  const float donut_speed = 140; // Speed of donut
-
+private:
   // State
   short direction = 1; // 1 forward, 0 stop, -1 backward
   int solid_count = 0; // 0 is start, 1 is reverse, 2 is stop
@@ -187,42 +213,6 @@ public:
 class Controller
 {
 public:
-  MotorCommand update_old(float raw_error)
-  {
-    float dt = static_cast<float>(millis() - last_ms) / 1000.0f;
-    dt = clamp<float>(dt, 0.001f, 0.1f);
-    last_ms = millis();
-
-    // Filtered error as linear combination of current and past error
-    e_filt = alpha_e * raw_error + (1.0f - alpha_e) * e_filt;
-
-    float raw_d = (e_filt - prev_e_filt) / dt;
-    prev_e_filt = e_filt;
-
-    d_filt = alpha_d * raw_d + (1.0f - alpha_d) * d_filt;
-
-    float turn = (kp * e_filt + kd * d_filt) * base_speed * turn_mult * 2;
-    turn = clamp<float>(turn, -base_speed * max_turn, base_speed * max_turn);
-
-    if (Timers::get().ready(0))
-    {
-      Serial.print("Position: ");
-      Serial.println(kp * e_filt * base_speed * turn_mult);
-      Serial.print("Derivative: ");
-      Serial.println(kd * d_filt * base_speed * turn_mult);
-      Timers::get().reset(0);
-    }
-
-    return {
-        clamp<int>(int(base_speed - turn), -255, 255),
-        clamp<int>(int(base_speed + turn), -255, 255),
-        clamp<int>(abs(int(base_speed - turn)), 0, 255),
-        clamp<int>(abs(int(base_speed + turn)), 0, 255),
-        direction(base_speed - turn),
-        direction(base_speed + turn),
-    };
-  }
-
   MotorCommand update(float raw_error)
   {
     float dt = static_cast<float>(millis() - last_ms) / 1000.0;
@@ -230,32 +220,32 @@ public:
     last_ms = millis();
 
     // Filtered error as linear combination of current and past error
-    e_filt = alpha_e * raw_error + (1.0f - alpha_e) * e_filt;
+    e_filt = Tuning::alpha_e * raw_error + (1.0f - Tuning::alpha_e) * e_filt;
 
     float raw_d = (e_filt - prev_e_filt) / dt;
     prev_e_filt = e_filt;
 
-    d_filt = alpha_d * raw_d + (1.0f - alpha_d) * d_filt;
+    d_filt = Tuning::alpha_d * raw_d + (1.0f - Tuning::alpha_d) * d_filt;
 
-    float turn = (kp * e_filt + kd * d_filt) * base_speed * turn_mult * 2;
-    turn = clamp<float>(turn, -base_speed * max_turn, base_speed * max_turn);
+    float turn = (Tuning::kp * e_filt + Tuning::kd * d_filt) * Tuning::base_speed * Tuning::turn_mult * 2;
+    turn = clamp<float>(turn, -Tuning::base_speed * Tuning::max_turn, Tuning::base_speed * Tuning::max_turn);
 
-    if (Timers::get().ready(0))
-    {
-      Serial.print("Position: ");
-      Serial.println(kp * e_filt * base_speed * turn_mult);
-      Serial.print("Derivative: ");
-      Serial.println(kd * d_filt * base_speed * turn_mult);
-      Timers::get().reset(0);
-    }
+    // if (Timers::get().ready(0))
+    // {
+    //   Serial.print("Position: ");
+    //   Serial.println(Tuning::kp * e_filt * Tuning::base_speed * Tuning::turn_mult);
+    //   Serial.print("Derivative: ");
+    //   Serial.println(Tuning::kd * d_filt * Tuning::base_speed * Tuning::turn_mult);
+    //   Timers::get().reset(0);
+    // }
 
     return {
-        clamp<int>(int(base_speed - turn), -255, 255),
-        clamp<int>(int(base_speed + turn), -255, 255),
-        clamp<int>(abs(int(base_speed - turn)), 0, 255),
-        clamp<int>(abs(int(base_speed + turn)), 0, 255),
-        direction(base_speed - turn),
-        direction(base_speed + turn),
+        clamp<int>(int(Tuning::base_speed - turn), -255, 255),
+        clamp<int>(int(Tuning::base_speed + turn), -255, 255),
+        clamp<int>(abs(int(Tuning::base_speed - turn)), 0, 255),
+        clamp<int>(abs(int(Tuning::base_speed + turn)), 0, 255),
+        direction(Tuning::base_speed - turn),
+        direction(Tuning::base_speed + turn),
     };
   }
 
@@ -267,22 +257,6 @@ public:
   }
 
 private:
-  // Tuning
-  // How much do we change steering in response to error?
-  float kp = 0.7f;  // Proportional
-  float kd = 0.14f; // Derivative
-
-  // How much do we carry over past error vs new error?
-  // Higher alpha is more responsive, lower alpha is more smooth
-  // Effective memory length is roughly 1/alpha
-  float alpha_e = 0.25f; // Proportional
-  float alpha_d = 0.35f; // Derivative
-
-  // Speeds
-  int base_speed = 255;   // 0 to 255
-  float turn_mult = 0.013f; // Scales turn
-  float max_turn = 1.5f;   // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
-
   // State
   float e_filt = 0.0f;      // Filtered (weighted sum of current and past error)
   float prev_e_filt = 0.0f; // Last step's filtered error to to calculate
@@ -317,24 +291,24 @@ public:
       weighted += pos[i] * v;
     }
 
-    if (sum < lost_threshold)
+    if (sum < Tuning::lost_threshold)
     {
       // Use last line if no line is detected
       return last_error;
     }
 
-    if (sum > trust_threshold)
+    if (sum > Tuning::trust_threshold)
     {
       last_error = weighted / sum;
     }
     else
     {
-      if (Timers::get().ready(2))
-      {
-        Serial.print("Untrusted sum: ");
-        Serial.println(sum);
-        Timers::get().reset(2);
-      }
+      // if (Timers::get().ready(2))
+      // {
+      //   Serial.print("Untrusted sum: ");
+      //   Serial.println(sum);
+      //   Timers::get().reset(2);
+      // }
     }
 
     return last_error;
@@ -349,7 +323,7 @@ public:
       sum += normalize(i, raw[i]);
     }
 
-    if (last_sum >= solid_threshold && sum >= solid_threshold)
+    if (last_sum >= Tuning::solid_threshold && sum >= Tuning::solid_threshold)
     {
       last_sum = 0.0f; // Forget crossbar if solid (reduce chance of immediate double response to crossbar)
       return true;
@@ -398,12 +372,8 @@ private:
       5.307f,
       13.907f,
       23.785f,
-      33.369f};
-
-  // If sensor readings sum to less than this, no line is detected
-  const float lost_threshold = 0.02f;
-  const float trust_threshold = 0.25f;
-  const float solid_threshold = 7.0f;
+      33.369f,
+  };
 };
 
 // Create global objects
@@ -432,10 +402,10 @@ void setup()
   ECE3_Init();
   Serial.begin(9600);
 
-  Timers::get().set_durations(1.0);
-  Timers::get().set_duration(2, 0.2);
-  Timers::get().set_duration(3, 0.1);
-  Timers::get().set_enabled(false); // Disable timers
+  // Timers::get().set_durations(1.0);
+  // Timers::get().set_duration(2, 0.2);
+  // Timers::get().set_duration(3, 0.1);
+  // Timers::get().set_enabled(false); // Disable timers
 
   int wait_ms = 1000;
   int blinks = 10;
@@ -462,12 +432,12 @@ void loop()
   
   car.drive(command);
 
-  if (Timers::get().ready(1))
-  {
-    Serial.print("Left: ");
-    Serial.println(command.left);
-    Serial.print("Right: ");
-    Serial.println(command.right);
-    Timers::get().reset(1);
-  }
+  // if (Timers::get().ready(1))
+  // {
+  //   Serial.print("Left: ");
+  //   Serial.println(command.left);
+  //   Serial.print("Right: ");
+  //   Serial.println(command.right);
+  //   Timers::get().reset(1);
+  // }
 }
