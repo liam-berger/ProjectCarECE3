@@ -5,11 +5,6 @@
 
 MotorCommand Controller::update(float raw_error)
 {
-    return update(raw_error, 0.0f);
-}
-
-MotorCommand Controller::update(float raw_error, float curvature)
-{
     unsigned long now = millis();
     float dt = static_cast<float>(now - last_ms) / 1000.0;
     dt = clamp<float>(dt, 0.001, 0.1);
@@ -23,12 +18,8 @@ MotorCommand Controller::update(float raw_error, float curvature)
 
     d_filt = Tuning::alpha_d * raw_d + (1.0f - Tuning::alpha_d) * d_filt;
 
-    curvature = clamp<float>(curvature, 0.0f, 1.0f);
-    int speed = clamp<int>(Tuning::base_speed - int(Tuning::curve_slowdown * curvature), 0, 255);
-    float turn_boost = 1.0f + Tuning::curve_turn_boost * curvature;
-
-    float turn = (Tuning::kp * e_filt + Tuning::kd * d_filt) * speed * Tuning::turn_mult * 2 * turn_boost;
-    turn = clamp<float>(turn, -speed * Tuning::max_turn, speed * Tuning::max_turn);
+    float turn = (Tuning::kp * e_filt + Tuning::kd * d_filt) * Tuning::turn_mult;
+    turn = clamp<float>(turn, -Tuning::base_speed * Tuning::max_turn, Tuning::base_speed * Tuning::max_turn);
 
     // if (Timers::get().ready(0))
     // {
@@ -39,8 +30,8 @@ MotorCommand Controller::update(float raw_error, float curvature)
     //   Timers::get().reset(0);
     // }
 
-    int target_left = clamp<int>(int(speed - turn), -255, 255);
-    int target_right = clamp<int>(int(speed + turn), -255, 255);
+    int target_left = clamp<int>(int(Tuning::base_speed - turn), -255, 255);
+    int target_right = clamp<int>(int(Tuning::base_speed + turn), -255, 255);
 
     last_left = slew_limit(target_left, last_left, dt);
     last_right = slew_limit(target_right, last_right, dt);
@@ -60,11 +51,12 @@ void Controller::reset()
 
 int Controller::slew_limit(int target, int previous, float dt)
 {
-    int max_step = int(Tuning::slew_rate * dt);
-    if (max_step < 1)
-        max_step = 1;
+    return target;
+    // int max_step = int(Tuning::slew_rate * dt);
+    // if (max_step < 1)
+    //     max_step = 1;
 
-    return clamp<int>(target, previous - max_step, previous + max_step);
+    // return clamp<int>(target, previous - max_step, previous + max_step);
 }
 
 MotorCommand Controller::command_from_signed(int left, int right)
