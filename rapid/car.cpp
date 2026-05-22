@@ -39,6 +39,11 @@ void Car::donut()
     direction = temp_dir;
 }
 
+void Car::roundabout()
+{
+
+}
+
 bool Car::respond_solid(bool solid)
 {
     if (!solid || millis() - last_solid < Tuning::solid_timeout * 1000)
@@ -62,3 +67,33 @@ bool Car::respond_solid(bool solid)
     } // Wait indefinitely
     return true;
 }
+
+bool Car::t2_respond_solid(bool solid)
+{
+    if (!solid || millis() - last_solid < Tuning::solid_timeout * 1000)
+        return false;
+
+    // Update state
+    last_solid = millis();
+    ++solid_count;
+
+    // Reverse via donut (blocking)
+    if (solid_count == 1 || solid_count == 3)
+    {
+        donut();
+        return true;
+    } 
+    else if (solid_count == 2)
+    {
+        donut();
+        return true;
+    }
+
+    // Otherwise, stop forever
+    drive(stop_command);
+    while (true)
+    {
+    } // Wait indefinitely
+    return true;
+}
+
