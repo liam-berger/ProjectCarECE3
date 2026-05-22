@@ -16,7 +16,8 @@ float Sensors::error()
     {
         float v = normalize(i, raw[i]);
 
-        v = v * v; // Sharpen peaks
+        // No sharpening right now
+        // v = v * v; // Sharpen peaks
         // v = v * v * v; // Even sharper
 
         sum += v;
@@ -32,6 +33,12 @@ float Sensors::error()
     if (sum > Tuning::trust_threshold)
     {
         last_error = weighted / sum;
+        float curve_from_offset = abs(last_error) / Tuning::curve_error_scale;
+        float curve_from_delta = abs(last_error - last_curve_error) / Tuning::curve_delta_scale;
+        float raw_curve = clamp<float>(curve_from_offset + curve_from_delta, 0.0f, 1.0f);
+
+        curve = Tuning::alpha_curve * raw_curve + (1.0f - Tuning::alpha_curve) * curve;
+        last_curve_error = last_error;
     }
     else
     {
@@ -44,6 +51,11 @@ float Sensors::error()
     }
 
     return last_error;
+}
+
+float Sensors::curvature()
+{
+    return curve;
 }
 
 bool Sensors::solid()

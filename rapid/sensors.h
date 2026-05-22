@@ -11,6 +11,8 @@ public:
 
     float error();
 
+    float curvature();
+
     bool solid();
 
 private:
@@ -21,6 +23,8 @@ private:
     const uint16_t max_vals[N] = {1652, 1635, 1039, 1565, 853, 1515, 1754, 1695};
 
     float last_error = 0;
+    float last_curve_error = 0;
+    float curve = 0;
     float last_sum = 0;
 
     float normalize(int sensor, uint16_t value);

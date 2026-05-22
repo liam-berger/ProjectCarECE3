@@ -11,7 +11,7 @@ inline constexpr T clamp(T x, T lo, T hi)
 }
 
 template <typename T>
-inline constexpr int abs(T x)
+inline constexpr T abs(T x)
 {
     return x < 0 ? -x : x;
 }

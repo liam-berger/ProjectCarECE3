@@ -10,17 +10,29 @@ struct Tuning
     // How much do we carry over past error vs new error?
     // Higher alpha is more responsive, lower alpha is more smooth
     // Effective memory length is roughly 1/alpha
-    static constexpr float alpha_e = 0.25f; // Proportional
-    static constexpr float alpha_d = 0.35f; // Derivative
+    static constexpr float alpha_e = 0.55f; // Proportional
+    static constexpr float alpha_d = 0.55f; // Derivative
 
     // Speeds
     static constexpr int base_speed = 255;     // 0 to 255
-    static constexpr float turn_mult = 0.013f; // Scales turn
-    static constexpr float max_turn = 1.5f;    // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
+    static constexpr float turn_mult = 0.011f; // Scales turn
+    static constexpr float max_turn = 1.0f;    // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
+
+    // Slew limiting
+    // Maximum PWM change per second. Lower is smoother; higher is more responsive.
+    static constexpr float slew_rate = 900.0f;
+
+    // Curvature response
+    // Curvature is normalized from 0.0 (straight) to 1.0 (hard curve).
+    static constexpr float alpha_curve = 0.25f;
+    static constexpr float curve_error_scale = 28.0f; // Error that counts as full curvature
+    static constexpr float curve_delta_scale = 7.0f;  // Error change per loop that counts as full curvature
+    static constexpr int curve_slowdown = 65;         // Max PWM subtracted from base_speed on hard curves
+    static constexpr float curve_turn_boost = 0.25f;  // Extra turn response on hard curves
 
     // Car tuning
     static constexpr float solid_timeout = 1.0f;   // Seconds after solid to go blind to new solids
-    static constexpr float donut_duration = 0.42f; // Seconds of donut
+    static constexpr float donut_duration = 0.34f; // Seconds of donut
     static constexpr float donut_speed = 140;      // Speed of donut
 
     // Sensor tuning
