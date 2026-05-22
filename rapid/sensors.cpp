@@ -53,7 +53,7 @@ float Sensors::error()
     return last_error;
 }
 
-bool Sensors::solid()
+bool Sensors::solid(float threshold)
 {
     float sum = 0;
 
@@ -62,7 +62,7 @@ bool Sensors::solid()
         sum += normalize(i, raw[i]);
     }
 
-    if (last_sum >= Tuning::solid_threshold && sum >= Tuning::solid_threshold)
+    if (last_sum >= threshold && sum >= threshold)
     {
         last_sum = 0.0f; // Forget crossbar if solid (reduce chance of immediate double response to crossbar)
         return true;
