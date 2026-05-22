@@ -5,7 +5,6 @@ class Controller
 {
 public:
     MotorCommand update(float raw_error);
-    MotorCommand update(float raw_error, float curvature);
 
     void reset();
 

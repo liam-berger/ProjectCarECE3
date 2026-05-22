@@ -11,8 +11,6 @@ public:
 
     float error();
 
-    float curvature();
-
     bool solid();
 
 private:
