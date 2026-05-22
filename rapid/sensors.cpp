@@ -33,12 +33,6 @@ float Sensors::error()
     if (sum > Tuning::trust_threshold)
     {
         last_error = weighted / sum;
-        // float curve_from_offset = abs(last_error) / Tuning::curve_error_scale;
-        // float curve_from_delta = abs(last_error - last_curve_error) / Tuning::curve_delta_scale;
-        // float raw_curve = clamp<float>(curve_from_offset + curve_from_delta, 0.0f, 1.0f);
-
-        // curve = Tuning::alpha_curve * raw_curve + (1.0f - Tuning::alpha_curve) * curve;
-        last_curve_error = last_error;
     }
     else
     {
