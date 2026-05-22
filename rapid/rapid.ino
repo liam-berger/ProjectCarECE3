@@ -1,4 +1,4 @@
-// V1.4 Architecture
+// V1.5 Architecture
 
 #include <ECE3.h>
 #include "pins.h"
@@ -68,24 +68,44 @@ void setup()
 
 void loop()
 {
-  ECE3_read_IR(sensors.values());
+  if (track_type == 1) { // Main track
 
-  float error = sensors.error();
-  bool solid = sensors.solid();
-  bool reset = car.respond_solid(solid);
+    ECE3_read_IR(sensors.values());
 
-  if (reset)
-    controller.reset();
-  MotorCommand command = controller.update(error);
+    float error = sensors.error();
+    bool solid = sensors.solid();
+    bool reset = car.respond_solid(solid);
 
-  car.drive(command);
+    if (reset)
+      controller.reset();
+    MotorCommand command = controller.update(error);
 
-  // if (Timers::get().ready(1))
-  // {
-  //   Serial.print("Left: ");
-  //   Serial.println(command.left);
-  //   Serial.print("Right: ");
-  //   Serial.println(command.right);
-  //   Timers::get().reset(1);
-  // }
+    //car.drive(command);
+
+    // if (Timers::get().ready(1))
+    // {
+    //   Serial.print("Left: ");
+    //   Serial.println(command.left);
+    //   Serial.print("Right: ");
+    //   Serial.println(command.right);
+    //   Timers::get().reset(1);
+    // }
+
+  } else { // Roundabout
+
+    ECE3_read_IR(sensors.values());
+
+    float error = sensors.error();
+    bool solid = sensors.solid();
+    bool fork = sensors.fork();
+    bool reset = car.respond_solid(solid);
+    bool round = car.respond_
+
+    if (reset)
+      controller.reset();
+    MotorCommand command = controller.update(error);
+
+    car.drive(command);
+
+  }
 }
