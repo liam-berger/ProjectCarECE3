@@ -73,14 +73,15 @@ void loop()
     ECE3_read_IR(sensors.values());
 
     float error = sensors.error();
+    float curvature = sensors.curvature();
     bool solid = sensors.solid();
     bool reset = car.respond_solid(solid);
 
     if (reset)
       controller.reset();
-    MotorCommand command = controller.update(error);
+    MotorCommand command = controller.update(error, curvature);
 
-    //car.drive(command);
+    car.drive(command);
 
     // if (Timers::get().ready(1))
     // {
@@ -96,14 +97,15 @@ void loop()
     ECE3_read_IR(sensors.values());
 
     float error = sensors.error();
+    float curvature = sensors.curvature();
     bool solid = sensors.solid();
-    bool fork = sensors.fork();
+    // bool fork = sensors.fork();
     bool reset = car.respond_solid(solid);
-    bool round = car.respond_
+    // bool round = car.respond_
 
     if (reset)
       controller.reset();
-    MotorCommand command = controller.update(error);
+    MotorCommand command = controller.update(error, curvature);
 
     car.drive(command);
 
