@@ -13,7 +13,7 @@ public:
 
     float curvature();
 
-    bool solid();
+    bool solid(float threshold);
 
 private:
     uint16_t raw[N];

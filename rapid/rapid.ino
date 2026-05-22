@@ -8,6 +8,7 @@
 #include "car.h"
 #include "controller.h"
 #include "sensors.h"
+#include "tuning.h"
 
 // Create global objects
 Sensors sensors;
@@ -74,7 +75,7 @@ void loop()
 
     float error = sensors.error();
     float curvature = sensors.curvature();
-    bool solid = sensors.solid();
+    bool solid = sensors.solid(Tuning::solid_threshold);
     bool reset = car.respond_solid(solid);
 
     if (reset)
@@ -98,7 +99,7 @@ void loop()
 
     float error = sensors.error();
     float curvature = sensors.curvature();
-    bool solid = sensors.solid();
+    bool solid = sensors.solid(Tuning::solid_threshold);
     // bool fork = sensors.fork();
     bool reset = car.respond_solid(solid);
     // bool round = car.respond_
