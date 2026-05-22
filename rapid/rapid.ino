@@ -69,18 +69,18 @@ void setup()
 
 void loop()
 {
-  if (track_type == 1) { // Main track
+  if (track_type == 1)
+  { // Main track
 
     ECE3_read_IR(sensors.values());
 
     float error = sensors.error();
-    float curvature = sensors.curvature();
     bool solid = sensors.solid(Tuning::solid_threshold);
     bool reset = car.respond_solid(solid);
 
     if (reset)
       controller.reset();
-    MotorCommand command = controller.update(error, curvature);
+    MotorCommand command = controller.update(error);
 
     car.drive(command);
 
@@ -92,13 +92,13 @@ void loop()
     //   Serial.println(command.right);
     //   Timers::get().reset(1);
     // }
-
-  } else { // Roundabout
+  }
+  else
+  { // Roundabout
 
     ECE3_read_IR(sensors.values());
 
     float error = sensors.error();
-    float curvature = sensors.curvature();
     bool solid = sensors.solid(Tuning::solid_threshold);
     // bool fork = sensors.fork();
     bool reset = car.respond_solid(solid);
@@ -106,9 +106,8 @@ void loop()
 
     if (reset)
       controller.reset();
-    MotorCommand command = controller.update(error, curvature);
+    MotorCommand command = controller.update(error);
 
     car.drive(command);
-
   }
 }
