@@ -75,12 +75,7 @@ void loop()
     ECE3_read_IR(sensors.values());
 
     float error = sensors.error();
-<<<<<<< HEAD
-    bool solid = sensors.solid();
-    == == == =
-                 float curvature = sensors.curvature();
     bool solid = sensors.solid(Tuning::solid_threshold);
->>>>>>> 375f523adc5e5a75689a3df1c328da2c64baa2b9
     bool reset = car.respond_solid(solid);
 
     if (reset)
@@ -104,7 +99,6 @@ void loop()
     ECE3_read_IR(sensors.values());
 
     float error = sensors.error();
-    float curvature = sensors.curvature();
     bool solid = sensors.solid(Tuning::solid_threshold);
     // bool fork = sensors.fork();
     bool reset = car.respond_solid(solid);
