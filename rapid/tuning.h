@@ -20,15 +20,7 @@ struct Tuning
 
     // Slew limiting
     // Maximum PWM change per second. Lower is smoother; higher is more responsive.
-    static constexpr float slew_rate = 900.0f;
-
-    // Curvature response
-    // Curvature is normalized from 0.0 (straight) to 1.0 (hard curve).
-    static constexpr float alpha_curve = 0.25f;
-    static constexpr float curve_error_scale = 28.0f; // Error that counts as full curvature
-    static constexpr float curve_delta_scale = 7.0f;  // Error change per loop that counts as full curvature
-    static constexpr int curve_slowdown = 65;         // Max PWM subtracted from base_speed on hard curves
-    static constexpr float curve_turn_boost = 0.25f;  // Extra turn response on hard curves
+    static constexpr float slew_rate = 4000.0f;
 
     // Car tuning
     static constexpr float solid_timeout = 1.0f;   // Seconds after solid to go blind to new solids
