@@ -8,7 +8,11 @@ public:
 
     void donut();
 
+    void roundabout();
+
     bool respond_solid(bool solid);
+    
+    bool t2_respond_solid(bool solid);
 
 private:
     // State
