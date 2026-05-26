@@ -10,21 +10,17 @@ struct Tuning
     // How much do we carry over past error vs new error?
     // Higher alpha is more responsive, lower alpha is more smooth
     // Effective memory length is roughly 1/alpha
-    static constexpr float alpha_e = 0.55f; // Proportional
-    static constexpr float alpha_d = 0.55f; // Derivative
+    static constexpr float alpha_e = 0.25f; // Proportional
+    static constexpr float alpha_d = 0.35f; // Derivative
 
     // Speeds
     static constexpr int base_speed = 255;     // 0 to 255
-    static constexpr float turn_mult = 0.011f; // Scales turn
-    static constexpr float max_turn = 1.0f;    // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
-
-    // Slew limiting
-    // Maximum PWM change per second. Lower is smoother; higher is more responsive.
-    static constexpr float slew_rate = 4000.0f;
+    static constexpr float turn_mult = 0.013f; // Scales turn
+    static constexpr float max_turn = 1.5f;    // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
 
     // Car tuning
     static constexpr float solid_timeout = 1.0f;   // Seconds after solid to go blind to new solids
-    static constexpr float donut_duration = 0.34f; // Seconds of donut
+    static constexpr float donut_duration = 0.42f; // Seconds of donut
     static constexpr float donut_speed = 140;      // Speed of donut
 
     // Sensor tuning
