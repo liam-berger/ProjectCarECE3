@@ -41,7 +41,24 @@ void Car::donut()
 
 void Car::roundabout()
 {
+    const int temp_dir = direction;
+    direction = 1;
 
+    MotorCommand rb_one{Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed,
+                        solid_count == 1 ? 1 : 0,
+                        solid_count == 1 ? 0 : 1};
+    MotorCommand rb_one{Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed,
+                        solid_count == 1 ? 0 : 1,
+                        solid_count == 1 ? 1 : 0};
+
+    drive(rb_one);
+    delay((uint32_t)(Tuning::rb_one_duration * 1000));
+    drive(rb_two);
+    delay((uint32_t)(Tuning::rb_two_duration * 1000));
+    drive(rb_one);
+    delay((uint32_t)(Tuning::rb_one_duration * 1000));
+
+    direction = temp_dir;
 }
 
 bool Car::respond_solid(bool solid)
@@ -80,7 +97,7 @@ bool Car::t2_respond_solid(bool solid)
     // Reverse via donut (blocking)
     if (solid_count == 1 || solid_count == 3)
     {
-        donut();
+        roundabout();
         return true;
     } 
     else if (solid_count == 2)

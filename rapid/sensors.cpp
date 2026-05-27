@@ -16,8 +16,7 @@ float Sensors::error()
     {
         float v = normalize(i, raw[i]);
 
-        // No sharpening right now
-        // v = v * v; // Sharpen peaks
+        v = v * v; // Sharpen peaks
         // v = v * v * v; // Even sharper
 
         sum += v;
