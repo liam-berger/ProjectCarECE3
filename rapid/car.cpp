@@ -98,8 +98,6 @@ bool Car::t2_respond_solid(bool solid)
     ++solid_count;
 
     digitalWrite(Pins::led_red, HIGH);
-    drive(stop_command);
-    delay(10000);
 
     // Reverse via donut (blocking)
     if (solid_count == 1 || solid_count == 3)

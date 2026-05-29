@@ -15,7 +15,7 @@ struct Tuning
 
     // Speeds
     static constexpr int base_speed = 255;     // 0 to 255
-    static constexpr int t2_base_speed = 100;
+    static constexpr int t2_base_speed = 50;
     static constexpr float turn_mult = 0.013f; // Scales turn
     static constexpr float max_turn = 1.5f;    // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
 
@@ -24,8 +24,8 @@ struct Tuning
     static constexpr float donut_duration = 0.42f; // Seconds of donut
     static constexpr float donut_speed = 140;      // Speed of donut
     static constexpr float rb_speed = 100;         // Speed of RB
-    static constexpr float rb_one_duration = 0.5f; // Seconds of RB first component
-    static constexpr float rb_two_duration = 3.36f; // Seconds of RB main component
+    static constexpr float rb_one_duration = 0.4f; // Seconds of RB first component
+    static constexpr float rb_two_duration = 1.94f; // Seconds of RB main componenth
 
     // Sensor tuning
     static constexpr float lost_threshold = 0.02f; // If sensor readings sum to less than this, no line is detected
