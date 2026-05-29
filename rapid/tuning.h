@@ -22,6 +22,9 @@ struct Tuning
     static constexpr float solid_timeout = 1.0f;   // Seconds after solid to go blind to new solids
     static constexpr float donut_duration = 0.42f; // Seconds of donut
     static constexpr float donut_speed = 140;      // Speed of donut
+    static constexpr float rb_speed = 100;         // Speed of RB
+    static constexpr float rb_one_duration = 0.5f; // Seconds of RB first component
+    static constexpr float rb_two_duration = 3.36f; // Seconds of RB main component
 
     // Sensor tuning
     static constexpr float lost_threshold = 0.02f; // If sensor readings sum to less than this, no line is detected

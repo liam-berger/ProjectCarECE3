@@ -41,15 +41,18 @@ void Car::donut()
 
 void Car::roundabout()
 {
+    // 1 backward, 0 forward, -1 X ???
     const int temp_dir = direction;
     direction = 1;
 
-    MotorCommand rb_one{Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed,
-                        solid_count == 1 ? 1 : 0,
-                        solid_count == 1 ? 0 : 1};
-    MotorCommand rb_one{Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed, Tuning::rb_speed,
-                        solid_count == 1 ? 0 : 1,
-                        solid_count == 1 ? 1 : 0};
+    MotorCommand rb_one{Tuning::rb_speed, Tuning::rb_speed,
+                        solid_count == 1 ? Tuning::rb_speed : 0,
+                        solid_count == 1 ? 0 : Tuning::rb_speed, 
+                        0, 0};
+    MotorCommand rb_two{Tuning::rb_speed, Tuning::rb_speed,
+                        solid_count == 1 ? 0 : Tuning::rb_speed,
+                        solid_count == 1 ? Tuning::rb_speed : 0, 
+                        0, 0};
 
     drive(rb_one);
     delay((uint32_t)(Tuning::rb_one_duration * 1000));

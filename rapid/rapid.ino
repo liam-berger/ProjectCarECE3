@@ -1,4 +1,4 @@
-// V1.9 Architecture
+// V1.10 Architecture
 
 #include <ECE3.h>
 #include "pins.h"
@@ -65,6 +65,9 @@ void setup()
     delay(wait_ms / blinks / 2);
     digitalWrite(Pins::led_rf, LOW);
   }
+
+  digitalWrite(Pins::led_blue, LOW); // Turn off LEDs for later debugging
+  digitalWrite(Pins::led_green, LOW);
 }
 
 void loop()
@@ -96,18 +99,23 @@ void loop()
   else
   { // Roundabout
 
-    ECE3_read_IR(sensors.values());
+    // ECE3_read_IR(sensors.values());
+    // float error = sensors.error();
+    // bool solid = sensors.solid(3.0);
+    //bool reset = car.t2_respond_solid(solid);
 
-    float error = sensors.error();
-    bool solid = sensors.solid(Tuning::solid_threshold);
-    // bool fork = sensors.fork();
-    bool reset = car.respond_solid(solid);
-    // bool round = car.respond_
+    // if(solid){
+    //   digitalWrite(Pins::led_red, LOW);
+    //   digitalWrite(Pins::led_green, HIGH);
+    // } else {
+    //   digitalWrite(Pins::led_red, HIGH);
+    //   digitalWrite(Pins::led_green, LOW);
+    // }
 
-    if (reset)
-      controller.reset();
-    MotorCommand command = controller.update(error);
+    // if (reset)
+    //   controller.reset();
+    // MotorCommand command = controller.update(error);
 
-    car.drive(command);
+    // car.drive(command);
   }
 }
