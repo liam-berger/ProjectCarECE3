@@ -13,5 +13,6 @@ private:
     float e_filt = 0.0f;      // Filtered (weighted sum of current and past error)
     float prev_e_filt = 0.0f; // Last step's filtered error to to calculate
     float d_filt = 0.0f;
+    float sum_e = 0.0f;
     unsigned long last_ms = 0;
 };

@@ -1,4 +1,4 @@
-// V1.10 Architecture
+// V1.11 Architecture
 
 #include <ECE3.h>
 #include "pins.h"
@@ -98,17 +98,20 @@ void loop()
   else
   { // Roundabout
 
-    ECE3_read_IR(sensors.values());
-    float error = sensors.error();
-    bool solid = sensors.solid(3.0);
-    bool reset = car.t2_respond_solid(solid);
+    car.roundabout();
+    car.drive(stop_command);
 
-    if (reset)
-      controller.reset();
-    MotorCommand command = controller.update(error, Tuning::t2_base_speed);
+    // ECE3_read_IR(sensors.values());
+    // float error = sensors.error();
+    // bool solid = sensors.solid(3.0);
+    // bool reset = car.t2_respond_solid(solid);
 
-    car.drive(command);
-    
+    // if (reset)
+    //   controller.reset();
+    // MotorCommand command = controller.update(error, Tuning::t2_base_speed);
+
+    // car.drive(command);
+
     // if(solid){
     //   digitalWrite(Pins::led_red, LOW);
     //   digitalWrite(Pins::led_green, HIGH);
