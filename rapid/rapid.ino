@@ -76,14 +76,13 @@ void loop()
   { // Main track
 
     ECE3_read_IR(sensors.values());
-
     float error = sensors.error();
     bool solid = sensors.solid(Tuning::solid_threshold);
     bool reset = car.respond_solid(solid);
 
     if (reset)
       controller.reset();
-    MotorCommand command = controller.update(error);
+    MotorCommand command = controller.update(error, Tuning::base_speed);
 
     car.drive(command);
 
@@ -99,11 +98,17 @@ void loop()
   else
   { // Roundabout
 
-    // ECE3_read_IR(sensors.values());
-    // float error = sensors.error();
-    // bool solid = sensors.solid(3.0);
-    //bool reset = car.t2_respond_solid(solid);
+    ECE3_read_IR(sensors.values());
+    float error = sensors.error();
+    bool solid = sensors.solid(3.0);
+    bool reset = car.t2_respond_solid(solid);
 
+    if (reset)
+      controller.reset();
+    MotorCommand command = controller.update(error, Tuning::t2_base_speed);
+
+    car.drive(command);
+    
     // if(solid){
     //   digitalWrite(Pins::led_red, LOW);
     //   digitalWrite(Pins::led_green, HIGH);
@@ -111,11 +116,5 @@ void loop()
     //   digitalWrite(Pins::led_red, HIGH);
     //   digitalWrite(Pins::led_green, LOW);
     // }
-
-    // if (reset)
-    //   controller.reset();
-    // MotorCommand command = controller.update(error);
-
-    // car.drive(command);
   }
 }

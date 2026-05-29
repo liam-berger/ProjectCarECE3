@@ -4,7 +4,7 @@
 class Controller
 {
 public:
-    MotorCommand update(float raw_error);
+    MotorCommand update(float raw_error, int base_speed);
 
     void reset();
 

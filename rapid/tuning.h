@@ -15,6 +15,7 @@ struct Tuning
 
     // Speeds
     static constexpr int base_speed = 255;     // 0 to 255
+    static constexpr int t2_base_speed = 100;
     static constexpr float turn_mult = 0.013f; // Scales turn
     static constexpr float max_turn = 1.5f;    // Motor speed from base_speed * (1 - max_turn) to base_speed * (1 + max_turn)
 
