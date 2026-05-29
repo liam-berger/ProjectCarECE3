@@ -47,11 +47,11 @@ void Car::roundabout()
 
     MotorCommand rb_one{Tuning::rb_speed, Tuning::rb_speed,
                         solid_count == 1 ? Tuning::rb_speed : 0,
-                        solid_count == 1 ? 0 : Tuning::rb_speed, 
+                        solid_count == 1 ? 0 : Tuning::rb_speed,
                         0, 0};
     MotorCommand rb_two{Tuning::rb_speed, Tuning::rb_speed,
                         solid_count == 1 ? 0 : Tuning::rb_speed,
-                        solid_count == 1 ? Tuning::rb_speed : 0, 
+                        solid_count == 1 ? Tuning::rb_speed : 0,
                         0, 0};
 
     drive(rb_one);
@@ -97,12 +97,14 @@ bool Car::t2_respond_solid(bool solid)
     last_solid = millis();
     ++solid_count;
 
+    digitalWrite(Pins::led_red, HIGH);
+
     // Reverse via donut (blocking)
     if (solid_count == 1 || solid_count == 3)
     {
         roundabout();
         return true;
-    } 
+    }
     else if (solid_count == 2)
     {
         donut();
@@ -116,4 +118,3 @@ bool Car::t2_respond_solid(bool solid)
     } // Wait indefinitely
     return true;
 }
-

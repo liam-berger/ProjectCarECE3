@@ -98,19 +98,16 @@ void loop()
   else
   { // Roundabout
 
-    car.roundabout();
-    car.drive(stop_command);
+    ECE3_read_IR(sensors.values());
+    float error = sensors.error();
+    bool solid = sensors.solid(3.0);
+    bool reset = car.t2_respond_solid(solid);
 
-    // ECE3_read_IR(sensors.values());
-    // float error = sensors.error();
-    // bool solid = sensors.solid(3.0);
-    // bool reset = car.t2_respond_solid(solid);
+    if (reset)
+      controller.reset();
+    MotorCommand command = controller.update(error, Tuning::t2_base_speed);
 
-    // if (reset)
-    //   controller.reset();
-    // MotorCommand command = controller.update(error, Tuning::t2_base_speed);
-
-    // car.drive(command);
+    car.drive(command);
 
     // if(solid){
     //   digitalWrite(Pins::led_red, LOW);
