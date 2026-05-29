@@ -37,7 +37,7 @@ void setup()
   pinMode(Pins::s2, INPUT_PULLUP);
 
   ECE3_Init();
-  Serial.begin(9600);
+  // Serial.begin(9600);
 
   // Timers::get().set_durations(1.0);
   // Timers::get().set_duration(2, 0.2);

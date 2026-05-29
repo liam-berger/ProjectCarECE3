@@ -9,7 +9,10 @@ MotorCommand Controller::update(float raw_error, int base_speed)
     dt = clamp<float>(dt, 0.001, 0.1);
     last_ms = millis();
 
+    // float big_error = raw_error + 1.4f * sinf(PI * raw_error / 8.0f);
     // Filtered error as linear combination of current and past error
+    if (-1.0f < raw_error && raw_error < 1.0f)
+        raw_error = 0.0f;
     e_filt = Tuning::alpha_e * raw_error + (1.0f - Tuning::alpha_e) * e_filt;
     // Note: e_filt is roughly between -8.0 and 8.0 max, usually more like -2.5 to 2.5
 
@@ -18,11 +21,11 @@ MotorCommand Controller::update(float raw_error, int base_speed)
 
     d_filt = Tuning::alpha_d * raw_d + (1.0f - Tuning::alpha_d) * d_filt;
 
-    // e_filt * dt is roughly between -0.05 and 0.05 max, usually more like -0.015 to 0.015
-    sum_e += e_filt * dt;
-    sum_e = clamp(sum_e, -Tuning::max_i, Tuning::max_i);
-    if (-1.0f < e_filt && e_filt < 1.0f)
-        sum_e *= 0.90;
+    // // e_filt * dt is roughly between -0.05 and 0.05 max, usually more like -0.015 to 0.015
+    // sum_e += e_filt * dt;
+    // sum_e = clamp(sum_e, -Tuning::max_i, Tuning::max_i);
+    // if (-1.0f < e_filt && e_filt < 1.0f)
+    //     sum_e *= 0.90;
 
     float turn = (Tuning::kp * e_filt + Tuning::kd * d_filt + Tuning::ki * sum_e) * base_speed * Tuning::turn_mult * 2;
     turn = clamp<float>(turn, -base_speed * Tuning::max_turn, base_speed * Tuning::max_turn);
